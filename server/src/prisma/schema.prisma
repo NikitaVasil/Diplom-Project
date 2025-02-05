@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String          @id @unique @default(uuid())
+  name       String
+  email      String          @unique
+  role       Role            @default(user)
+  password   String
+  active     Boolean         @default(true)
+  resetToken String?
+  boards     UsersOnBoards[]
+
+  Task Task[]
+}
+
+enum Role {
+  user
+  admin
+}
+
+model Board {
+  id        String          @id @default(uuid())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  name      String
+  isActive  Boolean         @default(false)
+  users     UsersOnBoards[]
+  columns   Column[]
+}
+
+model UsersOnBoards {
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId     String // relation scalar field (used in the `@relation` attribute above)
+  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  boardId    String // relation scalar field (used in the `@relation` attribute above)
+  assignedAt DateTime @default(now())
+
+  @@id([userId, boardId])
+}
+
+model Column {
+  id      String @id @default(uuid())
+  name    String
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tasks   Task[]
+
+  @@index([boardId]) // Add this line to create an index on the boardId field
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      String
+  column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  columnId    String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  subtasks    Subtask[]
+
+  @@index([columnId]) // Add this line to create an index on the boardId field
+}
+
+model Subtask {
+  id          String  @id @default(uuid())
+  title       String
+  isCompleted Boolean
+  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  taskId      String
+
+  @@index([taskId]) // Add this line to create an index on the boardId field
+}
